@@ -3,10 +3,8 @@ import fs from 'fs';
 import path from 'path';
 
 const tokenPath = path.join(__dirname, '../.auth/token.json');
-const authData = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
-const authHeaders = { 'Authorization': `Bearer ${authData.token}`, 'Content-Type': 'application/json' };
 
-// 1. 테스트할 데이터 배열 정의
+// 1. 테스트 데이터 배열 정의
 const testCases = [
   { summary: '정기 주간 회의', desc: '일반적인 제목 테스트' },
   { summary: 'Special! @#$%^&*', desc: '특수문자 포함 테스트' },
@@ -14,7 +12,22 @@ const testCases = [
 ];
 
 test.describe('구글 캘린더 DDT 시나리오', () => {
-  // 각 케이스별로 독립적인 테스트가 생성됩니다.
+  let authHeaders: any;
+
+  // ⭐ 핵심 수정: 파일을 읽는 로직을 beforeEach(테스트 전 실행) 블록으로 이동합니다.
+  // 이 시점에는 이미 setup 프로젝트가 완료되어 token.json이 안전하게 생성된 상태입니다.
+  test.beforeEach(() => {
+    if (!fs.existsSync(tokenPath)) {
+      throw new Error('토큰 파일이 존재하지 않습니다. setup 프로젝트가 성공했는지 확인하세요.');
+    }
+    const authData = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
+    authHeaders = { 
+      'Authorization': `Bearer ${authData.token}`, 
+      'Content-Type': 'application/json' 
+    };
+  });
+
+  // 각 데이터 세트에 대해 독립적인 테스트를 생성합니다.
   for (const data of testCases) {
     test(`일정 생성 및 삭제 테스트: ${data.desc}`, async ({ request }) => {
       let eventId: string;
@@ -28,14 +41,16 @@ test.describe('구글 캘린더 DDT 시나리오', () => {
           end: { dateTime: '2026-03-01T11:00:00Z' }
         }
       });
+
+      expect(createRes.ok()).toBeTruthy();
       const body = await createRes.json();
       eventId = body.id;
-      expect(createRes.ok()).toBeTruthy();
 
       // [삭제 - Cleanup]
       const deleteRes = await request.delete(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
         headers: authHeaders
       });
+      
       expect(deleteRes.ok()).toBeTruthy();
       console.log(`✅ 성공: ${data.desc}`);
     });

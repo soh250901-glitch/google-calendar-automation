@@ -3,6 +3,7 @@
 node_modules/
 .env
 .auth/
+/old
 /test-results/
 /playwright-report/
 /blob-report/
