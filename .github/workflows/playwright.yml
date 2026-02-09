@@ -1,27 +1,37 @@
-name: Playwright Tests
+name: Google Calendar Test Automation
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+    branches: [ main ] # 코드를 올릴 때마다 실행
+  schedule:
+    - cron: '0 0 * * *' # 매일 한국 시간 기준 오전 9시(UTC 0시)에 실행
+
 jobs:
   test:
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # 깃허브가 빌려주는 리눅스 컴퓨터에서 실행
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - uses: actions/checkout@v4 # 1. 내 코드를 가져온다
+      - uses: actions/setup-node@v4 # 2. Node.js를 설치한다
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci # 3. 라이브러리 설치
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps # 4. 브라우저 설치
+
+      - name: Run Playwright tests
+        run: npx playwright test # 5. 테스트 실행!
+        env:
+          # 깃허브 Secrets에 저장한 값을 환경 변수로 불러온다
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+
+      - name: Upload Report # 6. 테스트 리포트를 저장한다
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
