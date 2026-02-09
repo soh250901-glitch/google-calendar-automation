@@ -35,3 +35,12 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+
+      - name: Slack Notification
+        if: always() # 테스트 성공/실패 여부와 상관없이 항상 실행
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: ${{ job.status }} # 성공하면 초록, 실패하면 빨강으로 표시
+          SLACK_MESSAGE: "구글 캘린더 API 테스트 결과입니다. 상세 내용은 깃허브 리포트를 확인하세요! 🚀"
+          SLACK_TITLE: "Test Results: ${{ job.status }}"
